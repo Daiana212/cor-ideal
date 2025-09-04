@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quiz de Cores — Método David Zyla (Protótipo)</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --muted:#99a3b2; --accent:#7ee3a9;
+      --glass: rgba(255,255,255,0.04);
+      --radius:14px;
+      --maxw:900px;
+      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:linear-gradient(180deg,#071025 0%, #101827 60%);color:#e6eef6;display:flex;align-items:center;justify-content:center;padding:32px}
+    .wrap{width:100%;max-width:var(--maxw)}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    .logo{background:linear-gradient(90deg,#7ee3a9,#6ec8ff);padding:10px 14px;border-radius:12px;color:#022023;font-weight:700}
+    h1{font-size:20px;margin:0}
+    p.lead{margin:6px 0 22px;color:var(--muted)}
+
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:var(--radius);padding:22px;box-shadow:0 10px 30px rgba(2,6,23,0.6);}
+
+    .quiz-stage{display:grid;grid-template-columns:1fr 320px;gap:20px}
+    @media (max-width:900px){.quiz-stage{grid-template-columns:1fr} .side{order:2}}
+
+    .question{background:var(--card);padding:18px;border-radius:12px}
+    .q-title{font-size:18px;margin:0 0 6px}
+    .q-desc{color:var(--muted);margin:0 0 12px}
+    .options{display:flex;flex-direction:column;gap:10px}
+    .opt{background:var(--glass);padding:12px;border-radius:10px;cursor:pointer;border:1px solid transparent}
+    .opt:hover{border-color:rgba(255,255,255,0.06)}
+    .opt.selected{outline:3px solid rgba(126,227,169,0.08);border-color:rgba(126,227,169,0.12)}
+
+    .controls{display:flex;gap:10px;align-items:center;margin-top:14px}
+    .btn{background:white;color:#071024;padding:10px 14px;border-radius:12px;border:none;cursor:pointer;font-weight:600}
+    .btn.secondary{background:transparent;color:var(--accent);border:1px solid rgba(126,227,169,0.12)}
+
+    .side{position:relative}
+    .progress{background:rgba(255,255,255,0.03);padding:14px;border-radius:12px;display:flex;flex-direction:column;gap:12px}
+    .progress .bar{height:10px;background:rgba(255,255,255,0.04);border-radius:10px;overflow:hidden}
+    .progress .bar > i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#7ee3a9,#6ec8ff)}
+    .summary{font-size:14px;color:var(--muted)}
+
+    .result{display:none;padding:18px;border-radius:12px;background:linear-gradient(180deg, rgba(110,200,255,0.04), rgba(126,227,169,0.02));color:#02101a}
+    .result.visible{display:block}
+    .type-name{font-size:20px;margin:0 0 6px}
+    .palette{display:flex;gap:8px;margin:10px 0}
+    .swatch{width:48px;height:48px;border-radius:8px;box-shadow:0 6px 14px rgba(2,6,23,0.45)}
+    .rec-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+    .rec{padding:10px;border-radius:10px;background:white;color:#071024;font-weight:600}
+
+    footer{margin-top:12px;color:var(--muted);font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">ZYLA</div>
+      <div>
+        <h1>Quiz de Análise de Cores — David Zyla (Protótipo)</h1>
+        <p class="lead">Responda 6 perguntas para descobrir seu tipo de cor e receber recomendações personalizadas de batons.</p>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="quiz-stage">
+        <div>
+          <div id="questionBox" class="question">
+            <!-- Pergunta carregada via JavaScript -->
+          </div>
+
+          <div class="controls">
+            <button id="prevBtn" class="btn secondary">Anterior</button>
+            <button id="nextBtn" class="btn">Próxima</button>
+            <div style="margin-left:auto;color:var(--muted);font-weight:600" id="qIndex">1 / 6</div>
+          </div>
+
+          <div style="margin-top:14px;color:var(--muted);font-size:14px">Dica: responda de forma intuitiva — o método leva em conta essência, não apenas tom de pele.</div>
+        </div>
+
+        <aside class="side">
+          <div class="progress">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <strong>Progresso</strong>
+              <span id="progressPct">0%</span>
+            </div>
+            <div class="bar"><i id="barFill"></i></div>
+            <div class="summary">
+              <div><strong>12</strong> tipos de cor</div>
+              <div><strong>4</strong> categorias de batom</div>
+              <div><strong>6</strong> perguntas especializadas</div>
+            </div>
+            <div style="margin-top:8px;font-size:13px;color:var(--muted)">Quando terminar, clique em "Finalizar" para ver seu tipo e recomendações.</div>
+          </div>
+
+          <div style="margin-top:12px" id="resultCard" class="result">
+            <div id="typeName" class="type-name"></div>
+            <div id="typeDesc" style="font-size:13px;color:#05222a"></div>
+            <div class="palette" id="palette"></div>
+            <div style="margin-top:8px;font-size:13px;color:#05222a">Recomendações de batom</div>
+            <div class="rec-list" id="recs"></div>
+          </div>
+        </aside>
+      </div>
+
+      <footer>Protótipo — exporte os arquivos e publique no GitHub Pages / Vercel / Netlify.</footer>
+    </div>
+  </div>
+
+  <script>
+  // --- Dados do Quiz -------------------------------------------------------
+  const types = [
+    {id:0, code:'Aurora', name:'Aurora (Frio Claro)', desc:'Cores vibrantes e frias. Pele com contraste mais alto.', palette:['#C6F3FF','#7EE3FF','#4EA8FF','#1C3EFF'], recs:{Assinatura:'Rosa-cereja frio',Dramático:'Vermelho-berry',Neutro:'Rosa suave',Romantico:'Rosa-orquídea'}},
+    {id:1, code:'Sol', name:'Sol (Quente Claro)', desc:'Tons quentes, dourados e iluminados.', palette:['#FFF1C9','#FFD27A','#FFB04A','#FF7A1A'], recs:{Assinatura:'Coral quente',Dramático:'Vermelho-tijolo',Neutro:'Pêssego',Romantico:'Rosa-quente'}},
+    {id:2, code:'Prisma', name:'Prisma (Neutro Claro)', desc:'Equilíbrio de quente e frio, suave e claro.', palette:['#F6F8FF','#E9F2FF','#DCE9FF','#C7D8FF'], recs:{Assinatura:'Rosa-nude',Dramático:'Roxo suave',Neutro:'Bege rosado',Romantico:'Rosa champanhe'}},
+    {id:3, code:'Folha', name:'Folha (Frio Profundo)', desc:'Tons profundos e frios, muito contraste natural.', palette:['#D8F4E6','#9EEFD3','#55E2B2','#0FA07F'], recs:{Assinatura:'Borgonha frio',Dramático:'Vinho',Neutro:'Nude amarronzado',Romantico:'Rosa profundo'}},
+    {id:4, code:'Terracota', name:'Terracota (Quente Profundo)', desc:'Cores terrosas, quentes e ricas.', palette:['#FFE7D0','#FFCF9E','#FF9A66','#C8522B'], recs:{Assinatura:'Terracota',Dramático:'Vermelho-carmiño',Neutro:'Nude quente',Romantico:'Coral escuro'}},
+    {id:5, code:'Nebula', name:'Nebula (Frio Médio)', desc:'Cores frias, suaves com presença de azul.', palette:['#EAF7FF','#CFEFFF','#9FD9FF','#5CA9FF'], recs:{Assinatura:'Rosa blueberry',Dramático:'Bordô frio',Neutro:'Rosa acinzentado',Romantico:'Malva'}},
+    {id:6, code:'Solsticio', name:'Solstício (Quente Médio)', desc:'Tons dourados e âmbar, calor equilibrado.', palette:['#FFF8E6','#FFE7B3','#FFCF66','#FFA62E'], recs:{Assinatura:'Laranja queimado',Dramático:'Vermelho alaranjado',Neutro:'Bege quente',Romantico:'Pêssego rosado'}},
+    {id:7, code:'Luz', name:'Luz (Neutro Médio)', desc:'Paleta calma, neutra, fácil de combinar.', palette:['#FBFBFB','#F0F2F5','#E2E6EA','#D0D7DE'], recs:{Assinatura:'Rosa-moka',Dramático:'Tinto suave',Neutro:'Nude neutro',Romantico:'Rosa antigo'}},
+    {id:8, code:'Crepusculo', name:'Crepúsculo (Frio Escuro)', desc:'Profundidade fria, contraste elegante.', palette:['#E6F7FF','#BEEBFF','#7FD9FF','#3EA4FF'], recs:{Assinatura:'Roxo frio',Dramático:'Vinho profundo',Neutro:'Nude amadeirado',Romantico:'Rosa púrpura'}},
+    {id:9, code:'Chama', name:'Chama (Quente Escuro)', desc:'Intenso, quente e dramático.', palette:['#FFECE0','#FFD0A8','#FF9F6B','#D84B1A'], recs:{Assinatura:'Vermelho queimado',Dramático:'Bordô alaranjado',Neutro:'Nude escuro',Romantico:'Coral profundo'}},
+    {id:10, code:'Meio', name:'Meio (Neutro Escuro)', desc:'Tons mais fechados com equilíbrio de temperatura.', palette:['#F2F2F4','#D9D9DD','#BFBFC6','#8F8F99'], recs:{Assinatura:'Marrom rosado',Dramático:'Vinho antigo',Neutro:'Nude escuro',Romantico:'Rosa antigo escuro'}},
+    {id:11, code:'Aurora2', name:'Aurora Variada', desc:'Mistura única de elementos, versátil.', palette:['#FFF9F0','#FFE7D6','#FFD0C2','#FFB7A8'], recs:{Assinatura:'Rosa salmão',Dramático:'Magenta',Neutro:'Pêssego suave',Romantico:'Rosa quente claro'}}
+  ];
+
+  // 6 perguntas com 4 opções cada. Cada opção concede pontos para tipos (array de 12). Legenda: indices 0..11 correspondem aos tipos acima.
+  const questions = [
+    {
+      q:'Como você descreveria a intensidade das suas características (cabelo/olhos/peles)?',
+      opts:[
+        {t:'Muito contrastadas / vivas', points:[0,0,0,1,0,0,0,0,1,0,1,0]},
+        {t:'Leves e delicadas', points:[1,1,1,0,0,0,0,0,0,0,0,1]},
+        {t:'Quentes / douradas', points:[0,1,0,0,1,0,1,0,0,1,0,0]},
+        {t:'Profundas / escuras', points:[0,0,0,1,1,0,0,0,1,1,1,0]}
+      ]
+    },
+    {
+      q:'Qual acabamento de maquiagem combina mais com você?',
+      opts:[
+        {t:'Brilho luminoso', points:[1,1,1,0,0,1,1,1,0,0,0,0]},
+        {t:'Acabamento aveludado', points:[0,0,0,1,1,0,0,0,1,1,1,1]},
+        {t:'Mate sofisticado', points:[0,0,0,0,0,0,0,0,1,1,0,0]},
+        {t:'Natural/Translúcido', points:[1,1,1,1,0,1,1,1,0,0,0,1]}
+      ]
+    },
+    {
+      q:'Qual paleta de roupas você prefere?',
+      opts:[
+        {t:'Azuis e frios', points:[1,0,1,1,0,1,0,0,1,0,0,0]},
+        {t:'Tons terrosos', points:[0,1,0,0,1,0,1,1,0,1,1,0]},
+        {t:'Neutros clássicos', points:[0,0,1,1,0,0,1,1,0,0,1,1]},
+        {t:'Cores vivas e quentes', points:[0,1,0,0,1,1,0,0,0,1,0,1]}
+      ]
+    },
+    {
+      q:'Como você descreveria a temperatura da sua pele?',
+      opts:[
+        {t:'Mais fria (rosada/azulada)', points:[1,0,1,1,0,1,0,0,1,0,0,0]},
+        {t:'Mais quente (amarelada/dourada)', points:[0,1,0,0,1,0,1,1,0,1,1,0]},
+        {t:'Neutra', points:[0,0,1,1,0,0,1,1,0,0,1,1]},
+        {t:'Variável/indefinida', points:[1,1,0,0,1,1,0,0,1,0,0,1]}
+      ]
+    },
+    {
+      q:'Qual é a sua intenção ao usar batom?',
+      opts:[
+        {t:'Assinatura (marcar presença)', points:[1,1,0,0,0,0,1,0,1,1,0,1]},
+        {t:'Dramático (impacto)', points:[0,0,1,1,1,1,0,1,1,1,1,0]},
+        {t:'Neutro (versátil)', points:[0,1,1,0,1,0,1,1,0,0,1,1]},
+        {t:'Romântico (suavidade)', points:[1,1,1,1,0,1,0,0,0,0,0,1]}
+      ]
+    },
+    {
+      q:'Em resumo: você prefere uma aparência mais...',
+      opts:[
+        {t:'Forte e icônica', points:[0,0,0,1,0,0,0,0,1,1,1,0]},
+        {t:'Suave e etérea', points:[1,1,1,0,0,1,1,1,0,0,0,1]},
+        {t:'Quente e terrosa', points:[0,1,0,1,1,1,1,0,0,1,0,0]},
+        {t:'Equilibrada e clássica', points:[0,0,1,1,0,0,1,1,0,0,1,1]}
+      ]
+    }
+  ];
+
+  // estado
+  let answers = new Array(questions.length).fill(null);
+  let current = 0;
+
+  // DOM refs
+  const qBox = document.getElementById('questionBox');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const qIndex = document.getElementById('qIndex');
+  const barFill = document.getElementById('barFill');
+  const progressPct = document.getElementById('progressPct');
+  const resultCard = document.getElementById('resultCard');
+  const typeName = document.getElementById('typeName');
+  const typeDesc = document.getElementById('typeDesc');
+  const paletteEl = document.getElementById('palette');
+  const recsEl = document.getElementById('recs');
+
+  function renderQuestion(idx){
+    const item = questions[idx];
+    qBox.innerHTML = '';
+    const h = document.createElement('h2'); h.className='q-title'; h.textContent = item.q; qBox.appendChild(h);
+    const p = document.createElement('p'); p.className='q-desc'; p.textContent = `Escolha a opção que mais combina com você.`; qBox.appendChild(p);
+
+    const opts = document.createElement('div'); opts.className='options';
+    item.opts.forEach((o,i)=>{
+      const d = document.createElement('div'); d.className='opt'; d.tabIndex=0; d.textContent = o.t;
+      if(answers[idx]===i) d.classList.add('selected');
+      d.addEventListener('click',()=>{ selectOption(idx,i); });
+      d.addEventListener('keydown',(e)=>{ if(e.key==='Enter') selectOption(idx,i); });
+      opts.appendChild(d);
+    });
+    qBox.appendChild(opts);
+
+    qIndex.textContent = `${idx+1} / ${questions.length}`;
+    updateProgress();
+    prevBtn.disabled = idx===0;
+    nextBtn.textContent = idx===questions.length-1 ? 'Finalizar' : 'Próxima';
+  }
+
+  function selectOption(qIdx,optIdx){
+    answers[qIdx]=optIdx;
+    renderQuestion(qIdx);
+    // se houver próximo, avance automaticamente
+  }
+
+  prevBtn.addEventListener('click',()=>{ if(current>0){current--; renderQuestion(current);} });
+  nextBtn.addEventListener('click',()=>{
+    // se não respondeu, alerta simples
+    if(answers[current]===null){ alert('Por favor selecione uma opção antes de prosseguir.'); return; }
+    if(current < questions.length-1){ current++; renderQuestion(current); }
+    else { finishQuiz(); }
+  });
+
+  function updateProgress(){
+    const answered = answers.filter(a=>a!==null).length;
+    const pct = Math.round((answered / questions.length) * 100);
+    barFill.style.width = pct + '%';
+    progressPct.textContent = pct + '%';
+  }
+
+  function finishQuiz(){
+    // validar todas respondidas
+    if(answers.includes(null)){ alert('Complete todas as perguntas para ver seu resultado.'); return; }
+
+    // acumular pontos por tipo
+    const totals = new Array(types.length).fill(0);
+    answers.forEach((optIdx,qIdx)=>{
+      const pts = questions[qIdx].opts[optIdx].points;
+      for(let i=0;i<totals.length;i++) totals[i]+= (pts[i]||0);
+    });
+
+    // escolher melhor tipo: maior pontuação
+    let bestIndex = 0; let bestScore = -1;
+    for(let i=0;i<totals.length;i++){
+      if(totals[i] > bestScore){ bestScore = totals[i]; bestIndex = i; }
+    }
+
+    showResult(bestIndex, bestScore, totals);
+  }
+
+  function showResult(idx, score, totals){
+    const t = types[idx];
+    // preencher resultado
+    typeName.textContent = `${t.name} — ${t.code}`;
+    typeDesc.textContent = t.desc;
+    paletteEl.innerHTML = '';
+    t.palette.forEach(c=>{ const s = document.createElement('div'); s.className='swatch'; s.style.background=c; paletteEl.appendChild(s); });
+
+    recsEl.innerHTML = '';
+    // mostrar as 4 categorias de batom
+    ['Assinatura','Dramático','Neutro','Romantico'].forEach(cat=>{
+      const r = document.createElement('div'); r.className='rec'; r.textContent = `${cat}: ${t.recs[cat] || '—'}`; recsEl.appendChild(r);
+    });
+
+    // mostrar ranking curto
+    const rank = totals.map((v,i)=>({i,v,name:types[i].name})).sort((a,b)=>b.v-a.v).slice(0,4);
+    const rankNode = document.createElement('div'); rankNode.style.marginTop='10px'; rankNode.style.fontSize='13px'; rankNode.style.color='#05222a';
+    rankNode.innerHTML = '<strong>Top 4 tipos próximos:</strong> ' + rank.map(r=>`${r.name} (${r.v})`).join(' • ');
+    recsEl.appendChild(rankNode);
+
+    resultCard.classList.add('visible');
+    // scroll to result on small screens
+    resultCard.scrollIntoView({behavior:'smooth',block:'center'});
+
+    // também alterar botão para permitir reiniciar
+    nextBtn.textContent = 'Refazer Quiz';
+    nextBtn.onclick = ()=>{ resetQuiz(); };
+    prevBtn.disabled = true;
+  }
+
+  function resetQuiz(){
+    answers = new Array(questions.length).fill(null);
+    current = 0;
+    renderQuestion(0);
+    resultCard.classList.remove('visible');
+    nextBtn.onclick = null;
+    nextBtn.textContent = 'Próxima';
+    prevBtn.disabled = true;
+  }
+
+  // iniciar
+  renderQuestion(0);
+
+  </script>
+</body>
+</html>
